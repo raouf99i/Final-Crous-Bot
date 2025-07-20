@@ -1,33 +1,36 @@
-import time
 import requests
 from bs4 import BeautifulSoup
-from telegram import Bot
+import time
 
 TOKEN = "7840863675:AAETQXyAkyJv4JgqsNbhMyDnDpAQ6B7lrVM"
 CHAT_ID = "902064209"
-CHECK_INTERVAL = 300  # toutes les 5 minutes
 URL = "https://trouverunlogement.lescrous.fr/tools/search/logement?type[]=1&location=Clermont-Ferrand"
 
-bot = Bot(token=TOKEN)
 dernier = ""
 
-print("🤖 Bot CROUS démarré. Surveillance en cours.")
+def send_msg(text):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    requests.post(url, data={"chat_id": CHAT_ID, "text": text})
+
+print("🤖 Bot CROUS démarré avec Telegram API.")
 
 while True:
     try:
-        resp = requests.get(URL, timeout=10)
-        soup = BeautifulSoup(resp.text, "html.parser")
+        res = requests.get(URL, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
         annonces = soup.select("h2.search-logement-title")
         if annonces:
             titre = annonces[0].get_text(strip=True)
             if titre != dernier:
                 dernier = titre
-                bot.send_message(chat_id=CHAT_ID, text=f"🏠 Nouveau logement : {titre}")
-                print(f"Nouveau logement détecté : {titre}")
+                msg = f"🏠 Nouveau logement : {titre}"
+                send_msg(msg)
+                print("✅ Message envoyé :", msg)
             else:
-                print("Pas de nouveau logement.")
+                print("🔁 Rien de nouveau.")
         else:
-            print("Aucune annonce trouvée.")
+            print("📭 Aucune annonce.")
     except Exception as e:
-        print("Erreur pendant scrapping :", e)
-    time.sleep(CHECK_INTERVAL)
+        print("❗ Erreur check :", e)
+
+    time.sleep(300)
